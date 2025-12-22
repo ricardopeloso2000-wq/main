@@ -1,0 +1,11 @@
+idf_component_register(
+                       SRCS 
+                        "hello_world_main.cpp"
+                        "SPI/SPI-master.cpp"
+                        "SmartPointers/DMASmartPointer.cpp"
+                       INCLUDE_DIRS 
+                        "."
+                        "SPI"
+                        "SmartPointers"
+                       REQUIRES esp_driver_spi
+                       )
