@@ -24,7 +24,6 @@ static const char* SPI_Tag = "SPI_Master";
 class SPI_master
 {
     public:
-
     static SPI_master& VSPI_Instance();
     static SPI_master& HSPI_Instance();
 
