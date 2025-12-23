@@ -1,6 +1,6 @@
 idf_component_register(
                        SRCS 
-                        "hello_world_main.cpp"
+                        "main.cpp"
                         "SPI/SPI-master.cpp"
                         "SPI/SPI-Slave.cpp"
                         "SmartPointers/DMASmartPointer.cpp"

@@ -33,8 +33,8 @@ class SPI_Slave
     bool PutMessageOnTXQueue(uint8_t* TX_buf);
     bool GetMessageOnRXQueue(DMASmartPointer<uint8_t>& smt_ptr);
 
-    void IRAM_ATTR Pre_Callback(spi_transaction_t* trans);
-    void IRAM_ATTR Pos_Callback(spi_transaction_t* trans);
+    void IRAM_ATTR Pre_Callback(spi_slave_transaction_t* trans);
+    void IRAM_ATTR Pos_Callback(spi_slave_transaction_t* trans);
 
     private:
     SPI_Slave(spi_host_device_t Id);
