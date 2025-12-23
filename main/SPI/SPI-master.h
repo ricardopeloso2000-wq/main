@@ -1,8 +1,10 @@
 #ifndef SPIM_H
 #define SPIM_H
 
+#include <queue>
 #include "driver/spi_master.h"
 #include "esp_log.h"
+#include "SmartPointers/DMASmartPointer.h"
 
 static const char* SPI_Tag = "SPI_Master";
 
@@ -16,6 +18,7 @@ static const char* SPI_Tag = "SPI_Master";
 #define HSPI_CLK 14
 #define HSPI_CS   15
 
+#define QUEUE_SIZE 6
 #define BUFFSIZE 4096
 
 class SPI_master
@@ -32,6 +35,10 @@ class SPI_master
     void SPI_UnLockBus();
     
     bool QueueSPITransation(const uint8_t* TXBuf , uint8_t Flags);
+    bool GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr);
+
+    void Pre_Callback(spi_transaction_t* t);
+    void Pos_Callback(spi_transaction_t* t);
 
     private:
     SPI_master(int mode);
@@ -39,10 +46,14 @@ class SPI_master
 
     void VSPI_INIT();
     void HSPI_INIT();
-    
-    bool SPI_transaction_ongoing = false;
 
-    uint8_t RX_BUF[BUFFSIZE];
+    void Pre_routine();
+    void Pos_routine();
+    
+    spi_host_device_t Spi_Id;
+    bool Transaction_ongoing = false;
+
+    std::queue<DMASmartPointer<uint8_t>> RX_queue;
     spi_device_handle_t SPI_Handle;
 };
 

@@ -28,6 +28,8 @@ SPI_master::SPI_master(int mode)
 //Initiates the VSPI device
 void SPI_master::VSPI_INIT()
 {
+    Spi_Id = VSPI_HOST;
+
     spi_bus_config_t buscfg;
     buscfg.mosi_io_num = VSPI_MOSI;
     buscfg.miso_io_num = VSPI_MISO;
@@ -78,6 +80,8 @@ void SPI_master::VSPI_INIT()
 //Initiates the HSPI device
 void SPI_master::HSPI_INIT()
 {
+    Spi_Id = HSPI_HOST;
+
     spi_bus_config_t buscfg;
     buscfg.mosi_io_num = HSPI_MOSI;
     buscfg.miso_io_num = HSPI_MISO;
@@ -125,12 +129,35 @@ void SPI_master::HSPI_INIT()
     }
 }
 
+
 SPI_master::~SPI_master()
 {
     if(spi_bus_remove_device(SPI_Handle) != ESP_OK)
     {
         ESP_LOGE(SPI_Tag , "Unable to Free Master SPI device");
     }
+}
+
+void SPI_master::Pos_Callback(spi_transaction_t* trans)
+{
+    auto inst = static_cast<SPI_master*>(trans->user);
+    inst->Pos_routine();
+}
+
+void SPI_master::Pre_Callback(spi_transaction_t* trans)
+{
+    auto inst = static_cast<SPI_master*>(trans->user);
+    inst->Pre_routine();
+}
+
+void SPI_master::Pre_routine()
+{
+    Transaction_ongoing = true;
+}
+
+void SPI_master::Pos_routine()
+{
+    Transaction_ongoing = false;
 }
 
 void SPI_master::SPI_LockBus()
@@ -143,18 +170,34 @@ void SPI_master::SPI_UnLockBus()
     spi_device_release_bus(SPI_Handle);
 }
 
+bool SPI_master::GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr)
+{
+    if(RX_queue.empty()) return false;
+
+    if(Transaction_ongoing && RX_queue.size() == 1) return false;
+
+    smt_ptr = RX_queue.front();
+    RX_queue.pop();
+    return true;
+}
 
 bool SPI_master::QueueSPITransation(const uint8_t* TXBuf , uint8_t Flags)
 {
     if(TXBuf == nullptr) return false;
+    if(RX_queue.size() >= QUEUE_SIZE)
+    {
+        ESP_LOGE(SPI_Tag , "Dropping last Recived RX_buf");
+        RX_queue.pop();
+    }
+
+    RX_queue.push(DMASmartPointer<uint8_t>((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0)));
 
     spi_transaction_t trans = {};
     trans.length = BUFFSIZE * 8;
     trans.user = this;
     trans.tx_buffer = TXBuf;
-    trans.rx_buffer = RX_BUF;
+    trans.rx_buffer = RX_queue.back().GetPointer();
 
-    ESP_LOGI(SPI_Tag , "Sending SPI transaction");
     if(spi_device_queue_trans(SPI_Handle , &trans , portMAX_DELAY) != ESP_OK) return false;
 
     return true;
