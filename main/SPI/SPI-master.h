@@ -41,7 +41,7 @@ class SPI_master
     void Pos_Callback(spi_transaction_t* t);
 
     private:
-    SPI_master(int mode);
+    SPI_master(spi_host_device_t Id);
     ~SPI_master();
 
     void VSPI_INIT();

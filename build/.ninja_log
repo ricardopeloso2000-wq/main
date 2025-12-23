@@ -15,7 +15,11 @@
 12429	13181	7880675924235650	esp-idf/soc/CMakeFiles/__idf_soc.dir/esp32/i2c_periph.c.obj	3df282e9ca7b7aff
 125	207	7879640827100074	project_elf_src_esp32.c	f809009f368e1f1b
 4310	5346	7880675843034153	esp-idf/freertos/CMakeFiles/__idf_freertos.dir/heap_idf.c.obj	954468a170901f1f
+<<<<<<< HEAD
 47	11152	7881515046787880	build.ninja	55dec2028d5e8814
+=======
+47	11152	7882257058877302	build.ninja	55dec2028d5e8814
+>>>>>>> SPI_master
 6067	6692	7880675860592013	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32/esp_cpu_intr.c.obj	e853481c8225f520
 101	292	7880675802741812	esp-idf/esp_system/ld/sections.ld.in	61f975218b7f25b6
 38565	39518	7880676185616347	esp-idf/mbedtls/mbedtls/library/CMakeFiles/mbedcrypto.dir/ecdsa.c.obj	20c8a689b5ed2dc7
@@ -522,6 +526,7 @@
 49223	50985	7880676292278386	esp-idf/esp_driver_spi/CMakeFiles/__idf_esp_driver_spi.dir/src/gpspi/spi_common.c.obj	8c47db8924f9d03f
 78	1529	7881253129913030	esp-idf/main/CMakeFiles/__idf_main.dir/SPI/SPI-master.cpp.obj	e87bd480a0424c68
 115	908	7881253285399161	esp-idf/main/CMakeFiles/__idf_main.dir/SmartPointers/DMASmartPointer.cpp.obj	5f7826e3005540ad
+<<<<<<< HEAD
 96	11898	7881515046787880	build.ninja	55dec2028d5e8814
 104	331	7881515048539852	bootloader-prefix/src/bootloader-stamp/bootloader-build	4118098b43f9616a
 104	331	7881515048539852	bootloader/bootloader.elf	4118098b43f9616a
@@ -590,3 +595,33 @@
 7494	7875	7881528393901529	C:/Users/Rick/Test/build/.bin_timestamp	f708993b97705bce
 7875	8004	7881528393952822	esp-idf/esptool_py/CMakeFiles/app_check_size	86e5f3cfaa22dcaf
 7875	8004	7881528393952822	C:/Users/Rick/Test/build/esp-idf/esptool_py/CMakeFiles/app_check_size	86e5f3cfaa22dcaf
+=======
+65	10048	7882257058877302	build.ninja	55dec2028d5e8814
+100	313	7882257060593871	bootloader-prefix/src/bootloader-stamp/bootloader-build	4118098b43f9616a
+100	313	7882257060593871	bootloader/bootloader.elf	4118098b43f9616a
+100	313	7882257060593871	bootloader/bootloader.bin	4118098b43f9616a
+100	313	7882257060593871	bootloader/bootloader.map	4118098b43f9616a
+100	313	7882257060593871	C:/Users/Rick/Test/build/bootloader-prefix/src/bootloader-stamp/bootloader-build	4118098b43f9616a
+100	313	7882257060593871	C:/Users/Rick/Test/build/bootloader/bootloader.elf	4118098b43f9616a
+100	313	7882257060593871	C:/Users/Rick/Test/build/bootloader/bootloader.bin	4118098b43f9616a
+100	313	7882257060593871	C:/Users/Rick/Test/build/bootloader/bootloader.map	4118098b43f9616a
+314	365	7882257062741510	bootloader-prefix/src/bootloader-stamp/bootloader-install	8e7360debd2b8aa2
+314	365	7882257062741510	C:/Users/Rick/Test/build/bootloader-prefix/src/bootloader-stamp/bootloader-install	8e7360debd2b8aa2
+366	470	7882257064209307	CMakeFiles/bootloader-complete	7d07b47ba76d47e4
+366	470	7882257064209307	bootloader-prefix/src/bootloader-stamp/bootloader-done	7d07b47ba76d47e4
+366	470	7882257064209307	C:/Users/Rick/Test/build/CMakeFiles/bootloader-complete	7d07b47ba76d47e4
+366	470	7882257064209307	C:/Users/Rick/Test/build/bootloader-prefix/src/bootloader-stamp/bootloader-done	7d07b47ba76d47e4
+94	524	7882257060495307	esp-idf/esp_app_format/CMakeFiles/__idf_esp_app_format.dir/esp_app_desc.c.obj	93028e5f7657e7ea
+525	657	7882257064892306	esp-idf/esp_app_format/libesp_app_format.a	4bac0f8890e80233
+657	729	7882257066183050	esp-idf/main/CMakeFiles/__idf_main.dir/hello_world_main.cpp.obj	f5e4e7e08818333a
+665	737	7882257066247002	esp-idf/main/CMakeFiles/__idf_main.dir/SPI/SPI-master.cpp.obj	e87bd480a0424c68
+672	758	7882257066359718	esp-idf/main/CMakeFiles/__idf_main.dir/SPI/SPI-Slave.cpp.obj	386bd366b95c6e48
+758	902	7882257067207207	esp-idf/main/libmain.a	f6292173d36cf6a3
+902	6423	7882257123464731	esp-idf/esp_system/ld/sections.ld	69d1d5e25986530e
+902	6423	7882257123464731	C:/Users/Rick/Test/build/esp-idf/esp_system/ld/sections.ld	69d1d5e25986530e
+6423	7132	7882257123841790	Test.elf	8be295e0eb7f188
+7133	7475	7882257134267403	.bin_timestamp	f708993b97705bce
+7133	7475	7882257134267403	C:/Users/Rick/Test/build/.bin_timestamp	f708993b97705bce
+7475	7588	7882257134365348	esp-idf/esptool_py/CMakeFiles/app_check_size	86e5f3cfaa22dcaf
+7475	7588	7882257134365348	C:/Users/Rick/Test/build/esp-idf/esptool_py/CMakeFiles/app_check_size	86e5f3cfaa22dcaf
+>>>>>>> SPI_master

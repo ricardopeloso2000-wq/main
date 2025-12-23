@@ -1,7 +1,11 @@
 {
     "version":            "1.2",
     "project_name":       "Test",
+<<<<<<< HEAD
     "project_version":    "a21fccc-dirty",
+=======
+    "project_version":    "3207179-dirty",
+>>>>>>> SPI_master
     "project_path":       "C:/Users/Rick/Test",
     "idf_path":           "C:/Users/Rick/esp/v5.5.1/esp-idf",
     "build_dir":          "C:/Users/Rick/Test/build",

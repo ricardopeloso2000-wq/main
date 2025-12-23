@@ -2,34 +2,24 @@
 
 SPI_master& SPI_master::VSPI_Instance()
 {
-    static SPI_master VSPI_inst(0);
+    static SPI_master VSPI_inst(VSPI_HOST);
     return VSPI_inst;
 }
 SPI_master& SPI_master::HSPI_Instance()
 {
-    static SPI_master HSPI_inst(1);
+    static SPI_master HSPI_inst(HSPI_HOST);
     return HSPI_inst;
 }
 
-SPI_master::SPI_master(int mode)
+SPI_master::SPI_master(spi_host_device_t Id)
 {
-    //If mode = 0 VSPI
-    //If mode = 1 HSPI
-
-    if(!mode)
-    {
-        VSPI_INIT();
-    }
-    else
-    {
-        HSPI_INIT();
-    }
+    Spi_Id = Id;
+    if(Id == VSPI_HOST)VSPI_INIT();
+    if(Id == HSPI_HOST)HSPI_INIT();
 }
 //Initiates the VSPI device
 void SPI_master::VSPI_INIT()
 {
-    Spi_Id = VSPI_HOST;
-
     spi_bus_config_t buscfg;
     buscfg.mosi_io_num = VSPI_MOSI;
     buscfg.miso_io_num = VSPI_MISO;
@@ -80,8 +70,6 @@ void SPI_master::VSPI_INIT()
 //Initiates the HSPI device
 void SPI_master::HSPI_INIT()
 {
-    Spi_Id = HSPI_HOST;
-
     spi_bus_config_t buscfg;
     buscfg.mosi_io_num = HSPI_MOSI;
     buscfg.miso_io_num = HSPI_MISO;
