@@ -1,7 +1,7 @@
 {
     "version":            "1.2",
     "project_name":       "Test",
-    "project_version":    "1",
+    "project_version":    "a21fccc-dirty",
     "project_path":       "C:/Users/Rick/Test",
     "idf_path":           "C:/Users/Rick/esp/v5.5.1/esp-idf",
     "build_dir":          "C:/Users/Rick/Test/build",
@@ -385,7 +385,7 @@
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "C:/Users/Rick/Test/build/esp-idf/main/libmain.a",
-            "sources": [ "C:/Users/Rick/Test/main/hello_world_main.cpp", "C:/Users/Rick/Test/main/SPI/SPI-master.cpp", "C:/Users/Rick/Test/main/SmartPointers/DMASmartPointer.cpp" ],
+            "sources": [ "C:/Users/Rick/Test/main/hello_world_main.cpp", "C:/Users/Rick/Test/main/SPI/SPI-master.cpp", "C:/Users/Rick/Test/main/SPI/SPI-Slave.cpp", "C:/Users/Rick/Test/main/SmartPointers/DMASmartPointer.cpp" ],
             "include_dirs": [ ".", "SPI", "SmartPointers" ]
         },
         "mbedtls": {
