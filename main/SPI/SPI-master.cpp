@@ -184,7 +184,7 @@ bool SPI_master::GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr)
 bool SPI_master::QueueSPITransation(const uint8_t* TXBuf , uint8_t Flags)
 {
     if(TXBuf == nullptr) return false;
-    if(RX_queue.size() >= QUEUE_SIZE)
+    if(RX_queue.size() >= MASTER_RX_QUEUE_SIZE)
     {
         ESP_LOGE(SPI_Tag , "Dropping last Recived RX_buf");
         RX_queue.pop();

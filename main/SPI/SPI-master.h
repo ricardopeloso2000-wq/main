@@ -18,7 +18,7 @@ static const char* SPI_Tag = "SPI_Master";
 #define HSPI_CLK 14
 #define HSPI_CS   15
 
-#define QUEUE_SIZE 6
+#define MASTER_RX_QUEUE_SIZE 6
 #define BUFFSIZE 4096
 
 class SPI_master
