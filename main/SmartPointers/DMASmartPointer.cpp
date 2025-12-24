@@ -13,6 +13,13 @@ DMASmartPointer<C>::DMASmartPointer(C* NewPtr)
 }
 
 template<typename C>
+DMASmartPointer<C>::DMASmartPointer(const DMASmartPointer<C>& Old_SmartPtr)
+{
+    this->pointer = Old_SmartPtr.GetPointer();
+    Old_SmartPtr.SetPointer(nullptr);
+}
+
+template<typename C>
 DMASmartPointer<C>::~DMASmartPointer()
 {
     free(pointer);

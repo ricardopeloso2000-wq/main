@@ -31,7 +31,7 @@ void SPI_Slave::VSPI_INIT()
    
     spi_slave_interface_config_t devcfg;
     devcfg.mode = 1;
-    devcfg.queue_size = 6;
+    devcfg.queue_size = 1;
     devcfg.spics_io_num = VSPI_CS;
 
     switch(spi_slave_initialize(Slave_Id, &buscfg, &devcfg , SPI_DMA_CH_AUTO))
@@ -62,9 +62,8 @@ void SPI_Slave::HSPI_INIT()
    
     spi_slave_interface_config_t devcfg;
     devcfg.mode = 1;
-    devcfg.queue_size = 6;
+    devcfg.queue_size = 1;
     devcfg.spics_io_num = HSPI_CS;
-    devcfg.flags = SPI_SLAVE_TRANS_DMA_BUFFER_ALIGN_AUTO;
 
     switch(spi_slave_initialize(Slave_Id, &buscfg, &devcfg , SPI_DMA_CH_AUTO))
     {
@@ -87,11 +86,6 @@ SPI_Slave::~SPI_Slave()
     spi_slave_free(Slave_Id);
 }
 
-void SPI_Slave::Pre_Callback(spi_slave_transaction_t* trans)
-{
-    auto Inst = static_cast<SPI_Slave*>(trans->user);
-    Inst->Pre_routine();
-}
 
 void SPI_Slave::Pos_Callback(spi_slave_transaction_t* trans)
 {
@@ -99,10 +93,6 @@ void SPI_Slave::Pos_Callback(spi_slave_transaction_t* trans)
     Inst->Pos_routine();
 }
 
-void SPI_Slave::Pre_routine()
-{
-    SPI_transaction_ongoing = true;
-}
 
 void SPI_Slave::Pos_routine()
 {
@@ -122,7 +112,7 @@ bool SPI_Slave::PutMessageOnTXQueue(uint8_t* TX_buf)
     RX_queue.push(DMASmartPointer<uint8_t>((uint8_t*)spi_bus_dma_memory_alloc(Slave_Id , BUFFSIZE , 0)));
 
     spi_slave_transaction_t trans;
-    trans.length = BUFFSIZE *   8;
+    trans.length = BUFFSIZE * 8;
     trans.rx_buffer = RX_queue.back().GetPointer();
     trans.tx_buffer = TX_buf;
     trans.user = this;

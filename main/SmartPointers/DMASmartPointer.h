@@ -9,6 +9,7 @@ class DMASmartPointer
     public:
     DMASmartPointer();
     DMASmartPointer(C* NewPtr);
+    DMASmartPointer(const DMASmartPointer<C>& Old_SmartPtr);
     ~DMASmartPointer();
 
     C* GetPointer() const noexcept;

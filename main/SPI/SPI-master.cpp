@@ -16,11 +16,13 @@ SPI_master::SPI_master(spi_host_device_t Id)
     Spi_Id = Id;
     if(Id == VSPI_HOST)VSPI_INIT();
     if(Id == HSPI_HOST)HSPI_INIT();
+
+   
 }
 //Initiates the VSPI device
 void SPI_master::VSPI_INIT()
 {
-    spi_bus_config_t buscfg;
+    spi_bus_config_t buscfg = {};
     buscfg.mosi_io_num = VSPI_MOSI;
     buscfg.miso_io_num = VSPI_MISO;
     buscfg.sclk_io_num = VSPI_CLK;
@@ -29,11 +31,13 @@ void SPI_master::VSPI_INIT()
     buscfg.max_transfer_sz = 0;
    
 
-    spi_device_interface_config_t devcfg;
+    spi_device_interface_config_t devcfg = {};
     devcfg.clock_speed_hz = SPI_MASTER_FREQ_20M;
-    devcfg.mode = 1;
+    devcfg.mode = 0;
     devcfg.spics_io_num = VSPI_CS;
-    devcfg.queue_size = 6;
+    devcfg.duty_cycle_pos = 128;
+    devcfg.cs_ena_posttrans = 3;
+    devcfg.queue_size = 1;
     devcfg.flags = SPI_DEVICE_NO_DUMMY;
 
     switch(spi_bus_initialize(VSPI_HOST, &buscfg, SPI_DMA_CH_AUTO))
@@ -65,12 +69,14 @@ void SPI_master::VSPI_INIT()
         default:
             break;
     }
+
+    xTaskCreatePinnedToCore(SPI_master::TransmitThread , "VSPI Thread" , 512 , this , 5 , &Thread , 1);
 }
 
 //Initiates the HSPI device
 void SPI_master::HSPI_INIT()
 {
-    spi_bus_config_t buscfg;
+    spi_bus_config_t buscfg = {};
     buscfg.mosi_io_num = HSPI_MOSI;
     buscfg.miso_io_num = HSPI_MISO;
     buscfg.sclk_io_num = HSPI_CLK;
@@ -79,11 +85,13 @@ void SPI_master::HSPI_INIT()
     buscfg.max_transfer_sz = 0;
    
 
-    spi_device_interface_config_t devcfg;
+    spi_device_interface_config_t devcfg = {};
     devcfg.clock_speed_hz = SPI_MASTER_FREQ_20M;
-    devcfg.mode = 1;
+    devcfg.mode = 0;
     devcfg.spics_io_num = HSPI_CS;
-    devcfg.queue_size = 6;
+    devcfg.duty_cycle_pos = 128;
+    devcfg.cs_ena_posttrans = 3;
+    devcfg.queue_size = 1;
     devcfg.flags = SPI_DEVICE_NO_DUMMY;
 
     switch(spi_bus_initialize(HSPI_HOST, &buscfg, SPI_DMA_CH_AUTO))
@@ -115,8 +123,35 @@ void SPI_master::HSPI_INIT()
         default:
             break;
     }
+
+    xTaskCreatePinnedToCore(SPI_master::TransmitThread , "HSPI Thread" , 512 , this , 5 , &Thread , 1);
 }
 
+void SPI_master::TransmitThread(void* pvParameters)
+{
+    auto inst = static_cast<SPI_master*>(pvParameters);
+    inst->TrasmitThread_routine();
+}
+
+void SPI_master::TrasmitThread_routine()
+{
+    while(true)
+    {
+        while(!TX_queue.empty())
+        {
+            Transaction_ongoing = true;
+
+            spi_transaction_t t;
+            t.length = BUFFSIZE;
+            t.tx_buffer = TX_queue.front().GetPointer();
+            t.rx_buffer = RX_queue.back().GetPointer();
+
+            xSemaphoreTake(rdysem, portMAX_DELAY); //Wait for Slave to be ready
+            spi_device_transmit(SPI_Handle, &t);
+        }
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+}
 
 SPI_master::~SPI_master()
 {
@@ -124,23 +159,13 @@ SPI_master::~SPI_master()
     {
         ESP_LOGE(SPI_Tag , "Unable to Free Master SPI device");
     }
+    vTaskDelete(Thread);
 }
 
 void SPI_master::Pos_Callback(spi_transaction_t* trans)
 {
     auto inst = static_cast<SPI_master*>(trans->user);
     inst->Pos_routine();
-}
-
-void SPI_master::Pre_Callback(spi_transaction_t* trans)
-{
-    auto inst = static_cast<SPI_master*>(trans->user);
-    inst->Pre_routine();
-}
-
-void SPI_master::Pre_routine()
-{
-    Transaction_ongoing = true;
 }
 
 void SPI_master::Pos_routine()
@@ -169,25 +194,12 @@ bool SPI_master::GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr)
     return true;
 }
 
-bool SPI_master::QueueSPITransation(const uint8_t* TXBuf , uint8_t Flags)
+bool SPI_master::PutMessageOnTXQueue(DMASmartPointer<uint8_t>& smt_ptr)
 {
-    if(TXBuf == nullptr) return false;
-    if(RX_queue.size() >= MASTER_RX_QUEUE_SIZE)
-    {
-        ESP_LOGE(SPI_Tag , "Dropping last Recived RX_buf");
-        RX_queue.pop();
-    }
+    if(smt_ptr.GetPointer() == nullptr) return false;
+    if(RX_queue.size() >= MASTER_TX_QUEUE_SIZE) return false;
 
-    RX_queue.push(DMASmartPointer<uint8_t>((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0)));
-
-    spi_transaction_t trans = {};
-    trans.length = BUFFSIZE * 8;
-    trans.user = this;
-    trans.tx_buffer = TXBuf;
-    trans.rx_buffer = RX_queue.back().GetPointer();
-
-    if(spi_device_queue_trans(SPI_Handle , &trans , portMAX_DELAY) != ESP_OK) return false;
-
+    RX_queue.push(smt_ptr);
     return true;
 }
 

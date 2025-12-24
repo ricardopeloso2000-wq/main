@@ -9,4 +9,5 @@ idf_component_register(
                         "SPI"
                         "SmartPointers"
                        REQUIRES esp_driver_spi
+                       REQUIRES esp_timer
                        )
