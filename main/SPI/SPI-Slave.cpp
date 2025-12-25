@@ -86,13 +86,39 @@ SPI_Slave::~SPI_Slave()
     spi_slave_free(Slave_Id);
 }
 
-
 void SPI_Slave::Pos_Callback(spi_slave_transaction_t* trans)
 {
     auto Inst = static_cast<SPI_Slave*>(trans->user);
     Inst->Pos_routine();
 }
 
+void SPI_Slave::VSPI_GPIO_Callback(void* inst)
+{
+    static uint32_t lasthandshaketime_us;
+    uint32_t currtime_us = esp_timer_get_time();
+    uint32_t diff = currtime_us - lasthandshaketime_us;
+    if (diff < 1000) {
+        return; //ignore everything <1ms after an earlier irq
+    }
+    lasthandshaketime_us = currtime_us;
+
+    auto i = static_cast<SPI_Slave*>(inst);
+    i->GPIO_routine();
+}
+
+void SPI_Slave::HSPI_GPIO_Callback(void* inst)
+{
+    static uint32_t lasthandshaketime_us;
+    uint32_t currtime_us = esp_timer_get_time();
+    uint32_t diff = currtime_us - lasthandshaketime_us;
+    if (diff < 1000) {
+        return; //ignore everything <1ms after an earlier irq
+    }
+    lasthandshaketime_us = currtime_us;
+
+    auto i = static_cast<SPI_Slave*>(inst);
+    i->GPIO_routine();
+}
 
 void SPI_Slave::Pos_routine()
 {

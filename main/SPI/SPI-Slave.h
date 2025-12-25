@@ -5,6 +5,12 @@
 #include "../SmartPointers/DMASmartPointer.h"
 #include "driver/spi_slave.h"
 #include "esp_log.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
+#include "freertos/queue.h"
+#include "driver/gpio.h"
 
 #define VSPI_MOSI 23
 #define VSPI_MISO 19
@@ -38,9 +44,11 @@ class SPI_Slave
     bool PutMessageOnTXQueue(uint8_t* TX_buf);
     bool GetMessageOnRXQueue(DMASmartPointer<uint8_t>& smt_ptr);
 
-    static void IRAM_ATTR VSPI_GPIO_Callback(SPI_Slave* Inst);
-    static void IRAM_ATTR HSPI_GPIO_Callback(SPI_Slave* Inst);
+    static void IRAM_ATTR VSPI_GPIO_Callback(void* inst);
+    static void IRAM_ATTR HSPI_GPIO_Callback(void* inst);
     static void IRAM_ATTR Pos_Callback(spi_slave_transaction_t* trans);
+
+    static void IRAM_ATTR TransmitThread(void* pvParameters);
 
     private:
     SPI_Slave(spi_host_device_t Id);
@@ -50,6 +58,8 @@ class SPI_Slave
     void HSPI_INIT();
 
     void Pos_routine();
+    void GPIO_routine();
+    void TransmitThread_routine();
 
     spi_host_device_t Slave_Id;
     const char* SPI_Tag = "SPI_slave";
