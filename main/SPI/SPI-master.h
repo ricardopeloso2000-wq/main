@@ -80,6 +80,7 @@ class SPI_master
 
     std::queue<DMASmartPointer<uint8_t>> TX_queue;
     std::queue<DMASmartPointer<uint8_t>> RX_queue;
+    DMASmartPointer<uint8_t> Clear_Buffer;
     spi_device_handle_t SPI_Handle;
 };
 

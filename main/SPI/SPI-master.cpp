@@ -29,6 +29,8 @@ SPI_master::SPI_master(spi_host_device_t Id)
         &Thread,
         1
     );
+
+    Clear_Buffer.SetPointer((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0));
 }
 //Initiates the VSPI device
 void SPI_master::VSPI_INIT()
@@ -188,13 +190,21 @@ void SPI_master::TrasmitThread_routine()
         {
             Transaction_ongoing = true;
 
-            if(Slave_Sending) TX_queue.push(DMASmartPointer<uint8_t>((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0)));
+            RX_queue.push((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0));
 
             spi_transaction_t t = {};
             t.user = this;
             t.length = BUFFSIZE;
-            t.tx_buffer = TX_queue.front().GetPointer();
             t.rx_buffer = RX_queue.back().GetPointer();
+
+            if(Slave_Sending)
+            {
+                t.tx_buffer = Clear_Buffer.GetPointer();
+            }
+            else
+            {
+                t.tx_buffer = TX_queue.front().GetPointer();
+            }
 
             xSemaphoreTake(rdysem, portMAX_DELAY); //Wait for Slave to be ready
             spi_device_transmit(SPI_Handle, &t);
@@ -288,6 +298,7 @@ bool SPI_master::GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr)
 
     smt_ptr = RX_queue.front();
     RX_queue.pop();
+
     return true;
 }
 
