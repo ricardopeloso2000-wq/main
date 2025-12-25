@@ -17,7 +17,18 @@ SPI_master::SPI_master(spi_host_device_t Id)
     if(Id == VSPI_HOST)VSPI_INIT();
     if(Id == HSPI_HOST)HSPI_INIT();
 
-   
+    rdysem = xSemaphoreCreateBinary();
+    xSemaphoreGive(rdysem);
+
+    xTaskCreatePinnedToCore(
+        SPI_master::TransmitThread,
+        (Id == VSPI_HOST) ? "VSPI Thread" : "HSPI Thread",
+        4096,
+        this,
+        5,
+        &Thread,
+        1
+    );
 }
 //Initiates the VSPI device
 void SPI_master::VSPI_INIT()
@@ -39,6 +50,7 @@ void SPI_master::VSPI_INIT()
     devcfg.cs_ena_posttrans = 3;
     devcfg.queue_size = 1;
     devcfg.flags = SPI_DEVICE_NO_DUMMY;
+    devcfg.post_cb = SPI_master::Pos_Callback;
 
     switch(spi_bus_initialize(VSPI_HOST, &buscfg, SPI_DMA_CH_AUTO))
     {
@@ -70,7 +82,24 @@ void SPI_master::VSPI_INIT()
             break;
     }
 
-    xTaskCreatePinnedToCore(SPI_master::TransmitThread , "VSPI Thread" , 512 , this , 5 , &Thread , 1);
+    //Sets up GPIO MISO line
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_POSEDGE;
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+    io_conf.pin_bit_mask = BIT64(VSPI_HANDSHAKE_MISO_LINE);
+    
+    gpio_config(&io_conf);
+    gpio_install_isr_service(0);
+    gpio_set_intr_type(gpio_num_t(VSPI_HANDSHAKE_MISO_LINE), GPIO_INTR_POSEDGE);
+    gpio_isr_handler_add(gpio_num_t(VSPI_HANDSHAKE_MISO_LINE), SPI_master::VSPI_GPIO_CALLBACK, this);
+
+    //sets up GPIO MOSI line
+    io_conf = {};
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = BIT64(VSPI_HANDSHAKE_MOSI_LINE);
+
+    gpio_config(&io_conf);
 }
 
 //Initiates the HSPI device
@@ -92,7 +121,7 @@ void SPI_master::HSPI_INIT()
     devcfg.duty_cycle_pos = 128;
     devcfg.cs_ena_posttrans = 3;
     devcfg.queue_size = 1;
-    devcfg.flags = SPI_DEVICE_NO_DUMMY;
+    devcfg.post_cb = SPI_master::Pos_Callback;
 
     switch(spi_bus_initialize(HSPI_HOST, &buscfg, SPI_DMA_CH_AUTO))
     {
@@ -124,7 +153,25 @@ void SPI_master::HSPI_INIT()
             break;
     }
 
-    xTaskCreatePinnedToCore(SPI_master::TransmitThread , "HSPI Thread" , 512 , this , 5 , &Thread , 1);
+
+    //Sets up GPIO MISO line
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_POSEDGE;
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+    io_conf.pin_bit_mask = BIT64(HSPI_HANDSHAKE_MISO_LINE);
+    
+    gpio_config(&io_conf);
+    gpio_install_isr_service(0);
+    gpio_set_intr_type(gpio_num_t(HSPI_HANDSHAKE_MISO_LINE), GPIO_INTR_POSEDGE);
+    gpio_isr_handler_add(gpio_num_t(HSPI_HANDSHAKE_MISO_LINE), SPI_master::HSPI_GPIO_CALLBACK, this);
+
+    //sets up GPIO MOSI line
+    io_conf = {};
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = BIT64(HSPI_HANDSHAKE_MOSI_LINE);
+
+    gpio_config(&io_conf);
 }
 
 void SPI_master::TransmitThread(void* pvParameters)
@@ -137,18 +184,26 @@ void SPI_master::TrasmitThread_routine()
 {
     while(true)
     {
-        while(!TX_queue.empty())
+        while(!TX_queue.empty() || Slave_Sending)
         {
             Transaction_ongoing = true;
 
-            spi_transaction_t t;
+            if(Slave_Sending) TX_queue.push(DMASmartPointer<uint8_t>((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0)));
+
+            spi_transaction_t t = {};
+            t.user = this;
             t.length = BUFFSIZE;
             t.tx_buffer = TX_queue.front().GetPointer();
             t.rx_buffer = RX_queue.back().GetPointer();
 
             xSemaphoreTake(rdysem, portMAX_DELAY); //Wait for Slave to be ready
             spi_device_transmit(SPI_Handle, &t);
+
+            Slave_Sending = false;
+            TX_queue.pop();
         }
+        Transaction_ongoing = false;
+        xSemaphoreGive(rdysem);
         vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
@@ -160,6 +215,48 @@ SPI_master::~SPI_master()
         ESP_LOGE(SPI_Tag , "Unable to Free Master SPI device");
     }
     vTaskDelete(Thread);
+}
+
+void SPI_master::VSPI_GPIO_CALLBACK(void* arg)
+{
+    static uint32_t lasthandshaketime_us;
+    uint32_t currtime_us = esp_timer_get_time();
+    uint32_t diff = currtime_us - lasthandshaketime_us;
+    if (diff < 1000) {
+        return; //ignore everything <1ms after an earlier irq
+    }
+    lasthandshaketime_us = currtime_us;
+
+    auto inst = static_cast<SPI_master*>(arg);
+    inst->GPIO_routine();
+}
+
+void SPI_master::HSPI_GPIO_CALLBACK(void* arg)
+{
+    static uint32_t lasthandshaketime_us;
+    uint32_t currtime_us = esp_timer_get_time();
+    uint32_t diff = currtime_us - lasthandshaketime_us;
+    if (diff < 1000) {
+        return; //ignore everything <1ms after an earlier irq
+    }
+    lasthandshaketime_us = currtime_us;
+
+    auto inst = static_cast<SPI_master*>(arg);
+    inst->GPIO_routine();
+}
+
+void SPI_master::GPIO_routine()
+{
+    if(TX_queue.empty()) Slave_Sending = true;
+
+    if(!Transaction_ongoing && Spi_Id == VSPI_HOST) gpio_set_level((gpio_num_t)VSPI_HANDSHAKE_MOSI_LINE , 0);  
+    if(!Transaction_ongoing && Spi_Id == HSPI_HOST) gpio_set_level((gpio_num_t)HSPI_HANDSHAKE_MOSI_LINE , 0);
+
+    BaseType_t mustYield = false;
+    xSemaphoreGiveFromISR(rdysem, &mustYield);
+    if (mustYield) {
+        portYIELD_FROM_ISR();
+    }
 }
 
 void SPI_master::Pos_Callback(spi_transaction_t* trans)
@@ -197,9 +294,11 @@ bool SPI_master::GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr)
 bool SPI_master::PutMessageOnTXQueue(DMASmartPointer<uint8_t>& smt_ptr)
 {
     if(smt_ptr.GetPointer() == nullptr) return false;
-    if(RX_queue.size() >= MASTER_TX_QUEUE_SIZE) return false;
+    if(TX_queue.size() >= MASTER_TX_QUEUE_SIZE) return false;
 
-    RX_queue.push(smt_ptr);
+    if(!Transaction_ongoing && Spi_Id == VSPI_HOST) gpio_set_level((gpio_num_t)VSPI_HANDSHAKE_MOSI_LINE , 1);  
+    if(!Transaction_ongoing && Spi_Id == HSPI_HOST) gpio_set_level((gpio_num_t)HSPI_HANDSHAKE_MOSI_LINE , 1);
+    TX_queue.push(smt_ptr);
     return true;
 }
 

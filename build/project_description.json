@@ -1,7 +1,7 @@
 {
     "version":            "1.2",
     "project_name":       "Test",
-    "project_version":    "a101cb2-dirty",
+    "project_version":    "c1f7fe0-dirty",
     "project_path":       "C:/Users/Rick/Test",
     "idf_path":           "C:/Users/Rick/esp/v5.5.1/esp-idf",
     "build_dir":          "C:/Users/Rick/Test/build",
@@ -380,13 +380,13 @@
             "dir": "C:/Users/Rick/Test/main",
             "type": "LIBRARY",
             "lib": "__idf_main",
-            "reqs": [ "esp_driver_spi", "esp_timer" ],
+            "reqs": [ "esp_driver_spi", "esp_timer", "esp_driver_gpio" ],
             "priv_reqs": [],
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "C:/Users/Rick/Test/build/esp-idf/main/libmain.a",
-            "sources": [ "C:/Users/Rick/Test/main/main.cpp", "C:/Users/Rick/Test/main/SPI/SPI-master.cpp", "C:/Users/Rick/Test/main/SPI/SPI-Slave.cpp", "C:/Users/Rick/Test/main/SmartPointers/DMASmartPointer.cpp" ],
-            "include_dirs": [ ".", "SPI", "SmartPointers" ]
+            "sources": [ "C:/Users/Rick/Test/main/main.cpp", "C:/Users/Rick/Test/main/SPI/SPI-master.cpp", "C:/Users/Rick/Test/main/SPI/SPI-Slave.cpp", "C:/Users/Rick/Test/main/SmartPointers/DMASmartPointer.cpp", "C:/Users/Rick/Test/main/Queues/DMAQueue.cpp" ],
+            "include_dirs": [ ".", "SPI", "SmartPointers", "Queues" ]
         },
         "mbedtls": {
             "alias": "idf::mbedtls",
@@ -1797,11 +1797,11 @@
             "prefix": "idf",
             "dir": "C:/Users/Rick/Test/main",
             "lib": "__idf_main",
-            "reqs": [ "esp_driver_spi", "esp_timer" ],
+            "reqs": [ "esp_driver_spi", "esp_timer", "esp_driver_gpio" ],
             "priv_reqs": [],
             "managed_reqs": [],
             "managed_priv_reqs": [],
-            "include_dirs": [ ".", "SPI", "SmartPointers" ]
+            "include_dirs": [ ".", "SPI", "SmartPointers", "Queues" ]
         }
     },
     "debug_prefix_map_gdbinit": "",

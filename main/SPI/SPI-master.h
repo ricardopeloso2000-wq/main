@@ -5,6 +5,7 @@
 
 #include <queue>
 #include "driver/spi_master.h"
+#include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -50,8 +51,8 @@ class SPI_master
     bool PutMessageOnTXQueue(DMASmartPointer<uint8_t>& TX_ptr);
     bool GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr);
 
-    static void IRAM_ATTR VSPI_GPIO_CALLBACK(SPI_master* inst);
-    static void IRAM_ATTR HSPI_GPIO_CALLBACK(SPI_master* inst);
+    static void IRAM_ATTR VSPI_GPIO_CALLBACK(void* inst);
+    static void IRAM_ATTR HSPI_GPIO_CALLBACK(void* inst);
     static void IRAM_ATTR Pos_Callback(spi_transaction_t* t);
     static void TransmitThread(void* pvParameters);
     
@@ -64,6 +65,7 @@ class SPI_master
     void HSPI_INIT();
 
     void Pos_routine();
+    void GPIO_routine();
 
     void TrasmitThread_routine();
 
@@ -73,7 +75,8 @@ class SPI_master
 
     SemaphoreHandle_t rdysem;
     
-    bool Transaction_ongoing = false;
+    volatile bool Transaction_ongoing = false;
+    volatile bool Slave_Sending;
 
     std::queue<DMASmartPointer<uint8_t>> TX_queue;
     std::queue<DMASmartPointer<uint8_t>> RX_queue;
