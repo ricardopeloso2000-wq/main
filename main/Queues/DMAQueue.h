@@ -16,6 +16,9 @@ class DMAQueue
     void push(uint8_t* Ptr , size_t size);
     void pop();
 
+    bool empty();
+    size_t size();
+
     uint8_t* back();
     uint8_t* front();
 
@@ -23,6 +26,7 @@ class DMAQueue
     uint16_t m_front;
     uint16_t m_back;
     uint16_t m_maxsize;
+    uint16_t m_size;
     DMASmartPointer<DMASmartPointer<uint8_t>> Queue;
 };
 
