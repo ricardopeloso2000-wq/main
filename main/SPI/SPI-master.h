@@ -4,7 +4,7 @@
 #define INCLUDE_vTaskDelete 1
 
 #include <queue>
-#include "driver/spi_master.h"
+#include "driver/spi_slave.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_timer.h"

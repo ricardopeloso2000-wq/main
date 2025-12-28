@@ -125,7 +125,6 @@ void SPI_Slave::Pos_routine()
     SPI_transaction_ongoing = false;
 }
 
-
 bool SPI_Slave::PutMessageOnTXQueue(uint8_t* TX_buf)
 {
     if(TX_buf == nullptr) return false;

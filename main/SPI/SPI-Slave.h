@@ -64,7 +64,9 @@ class SPI_Slave
     spi_host_device_t Slave_Id;
     const char* SPI_Tag = "SPI_slave";
 
-    bool SPI_transaction_ongoing = false;
+    volatile bool SPI_transaction_ongoing = false;
+    volatile bool Master_Sending = false;
+
     std::queue<DMASmartPointer<uint8_t>> TX_queue;
     std::queue<DMASmartPointer<uint8_t>> RX_queue;
 };

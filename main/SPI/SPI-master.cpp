@@ -190,6 +190,15 @@ void SPI_master::TrasmitThread_routine()
         {
             Transaction_ongoing = true;
 
+            if(Spi_Id == VSPI_HOST) gpio_set_level((gpio_num_t)VSPI_HANDSHAKE_MOSI_LINE , 1);  
+            if(Spi_Id == HSPI_HOST) gpio_set_level((gpio_num_t)HSPI_HANDSHAKE_MOSI_LINE , 1);
+
+            if(RX_queue.size() >= MASTER_RX_QUEUE_SIZE)
+            {
+                RX_queue.pop();
+                ESP_LOGI(SPI_Tag,"Dropping last RX_Buf from the queue");
+            }
+
             RX_queue.push((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0));
 
             spi_transaction_t t = {};
@@ -213,7 +222,7 @@ void SPI_master::TrasmitThread_routine()
             TX_queue.pop();
         }
         Transaction_ongoing = false;
-        xSemaphoreGive(rdysem);
+        
         vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
@@ -259,8 +268,8 @@ void SPI_master::GPIO_routine()
 {
     if(TX_queue.empty()) Slave_Sending = true;
 
-    if(!Transaction_ongoing && Spi_Id == VSPI_HOST) gpio_set_level((gpio_num_t)VSPI_HANDSHAKE_MOSI_LINE , 0);  
-    if(!Transaction_ongoing && Spi_Id == HSPI_HOST) gpio_set_level((gpio_num_t)HSPI_HANDSHAKE_MOSI_LINE , 0);
+    if(Spi_Id == VSPI_HOST) gpio_set_level((gpio_num_t)VSPI_HANDSHAKE_MOSI_LINE , 0);  
+    if(Spi_Id == HSPI_HOST) gpio_set_level((gpio_num_t)HSPI_HANDSHAKE_MOSI_LINE , 0);
 
     BaseType_t mustYield = false;
     xSemaphoreGiveFromISR(rdysem, &mustYield);
@@ -302,14 +311,16 @@ bool SPI_master::GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr)
     return true;
 }
 
-bool SPI_master::PutMessageOnTXQueue(DMASmartPointer<uint8_t>& smt_ptr)
+bool SPI_master::PutMessageOnTXQueue(const DMASmartPointer<uint8_t>& smt_ptr , size_t size)
 {
     if(smt_ptr.GetPointer() == nullptr) return false;
     if(TX_queue.size() >= MASTER_TX_QUEUE_SIZE) return false;
 
-    if(!Transaction_ongoing && Spi_Id == VSPI_HOST) gpio_set_level((gpio_num_t)VSPI_HANDSHAKE_MOSI_LINE , 1);  
-    if(!Transaction_ongoing && Spi_Id == HSPI_HOST) gpio_set_level((gpio_num_t)HSPI_HANDSHAKE_MOSI_LINE , 1);
-    TX_queue.push(smt_ptr);
+    DMASmartPointer TX_buf((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0));
+    memcpy(TX_buf.GetPointer() , smt_ptr.GetPointer() , size);
+
+    TX_queue.push(TX_buf);
+    
     return true;
 }
 
