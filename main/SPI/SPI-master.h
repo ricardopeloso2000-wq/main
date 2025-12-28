@@ -48,7 +48,7 @@ class SPI_master
     void SPI_LockBus();
     void SPI_UnLockBus();
     
-    bool PutMessageOnTXQueue(DMASmartPointer<uint8_t>& TX_ptr);
+    bool PutMessageOnTXQueue(const DMASmartPointer<uint8_t>& TX_ptr , size_t size);
     bool GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr);
 
     static void IRAM_ATTR VSPI_GPIO_CALLBACK(void* inst);
