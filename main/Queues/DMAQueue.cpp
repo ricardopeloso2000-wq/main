@@ -16,7 +16,7 @@ DMAQueue::DMAQueue(size_t max_size , spi_host_device_t Id , size_t BuffSize) : m
 void DMAQueue::push()
 {
     m_back++;
-    if(m_back >= m_maxsize - 1) m_back - (m_maxsize-1);
+    if(m_back >= m_maxsize - 1) m_back -= (m_maxsize-1);
     if(m_back == m_front) m_front++;
 }
 
@@ -25,7 +25,7 @@ void DMAQueue::push(uint8_t* Ptr , size_t size)
     memcpy(Queue.GetPointer()[m_back].GetPointer() , Ptr , size);
 
     m_back++;
-    if(m_back >= m_maxsize - 1) m_back - (m_maxsize-1);
+    if(m_back >= m_maxsize - 1) m_back -= (m_maxsize-1);
     if(m_back == m_front) m_front++;
 }
 
@@ -39,7 +39,7 @@ uint8_t* DMAQueue::front()
     return Queue.GetPointer()[m_front].GetPointer();
 }
 
-uint8_t* DMAQueue::front()
+uint8_t* DMAQueue::back()
 {
     if(m_back - 1 > 0)
     {
