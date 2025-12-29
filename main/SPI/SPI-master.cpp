@@ -52,7 +52,6 @@ void SPI_master::VSPI_INIT()
     devcfg.cs_ena_posttrans = 3;
     devcfg.queue_size = 1;
     devcfg.flags = SPI_DEVICE_NO_DUMMY;
-    devcfg.post_cb = SPI_master::Pos_Callback;
 
     switch(spi_bus_initialize(VSPI_HOST, &buscfg, SPI_DMA_CH_AUTO))
     {
@@ -123,7 +122,6 @@ void SPI_master::HSPI_INIT()
     devcfg.duty_cycle_pos = 128;
     devcfg.cs_ena_posttrans = 3;
     devcfg.queue_size = 1;
-    devcfg.post_cb = SPI_master::Pos_Callback;
 
     switch(spi_bus_initialize(HSPI_HOST, &buscfg, SPI_DMA_CH_AUTO))
     {
@@ -278,17 +276,6 @@ void SPI_master::GPIO_routine()
     }
 }
 
-void SPI_master::Pos_Callback(spi_transaction_t* trans)
-{
-    auto inst = static_cast<SPI_master*>(trans->user);
-    inst->Pos_routine();
-}
-
-void SPI_master::Pos_routine()
-{
-    Transaction_ongoing = false;
-}
-
 void SPI_master::SPI_LockBus()
 {
     spi_device_acquire_bus(SPI_Handle , portMAX_DELAY);
@@ -302,7 +289,6 @@ void SPI_master::SPI_UnLockBus()
 bool SPI_master::GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr)
 {
     if(RX_queue.empty()) return false;
-
     if(Transaction_ongoing && RX_queue.size() == 1) return false;
 
     memcpy(smt_ptr.GetPointer() , RX_queue.front() , BUFFSIZE);

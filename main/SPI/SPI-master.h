@@ -53,7 +53,6 @@ class SPI_master
 
     static void IRAM_ATTR VSPI_GPIO_CALLBACK(void* inst);
     static void IRAM_ATTR HSPI_GPIO_CALLBACK(void* inst);
-    static void IRAM_ATTR Pos_Callback(spi_transaction_t* t);
     static void TransmitThread(void* pvParameters);
     
     private:
@@ -64,7 +63,6 @@ class SPI_master
     void VSPI_INIT();
     void HSPI_INIT();
 
-    void Pos_routine();
     void GPIO_routine();
 
     void TrasmitThread_routine();
