@@ -11,9 +11,14 @@ SPI_master& SPI_master::HSPI_Instance()
     return HSPI_inst;
 }
 
-SPI_master::SPI_master(spi_host_device_t Id) : RX_queue(MASTER_RX_QUEUE_SIZE , Id , BUFFSIZE) , TX_queue(MASTER_TX_QUEUE_SIZE , Id , BUFFSIZE)
+SPI_master::SPI_master(spi_host_device_t Id) : Spi_Id(Id), RX_queue(MASTER_RX_QUEUE_SIZE , Id , BUFFSIZE) , TX_queue(MASTER_TX_QUEUE_SIZE , Id , BUFFSIZE)
 {
-    Spi_Id = Id;
+    static bool gpio_isr_installed = false;
+    if(!gpio_isr_installed) {
+        gpio_install_isr_service(0);
+        gpio_isr_installed = true;
+    }
+
     if(Id == VSPI_HOST)VSPI_INIT();
     if(Id == HSPI_HOST)HSPI_INIT();
 
@@ -23,12 +28,14 @@ SPI_master::SPI_master(spi_host_device_t Id) : RX_queue(MASTER_RX_QUEUE_SIZE , I
     xTaskCreatePinnedToCore(
         SPI_master::TransmitThread,
         (Id == VSPI_HOST) ? "VSPI Thread" : "HSPI Thread",
-        4096,
+        8192,
         this,
         5,
         &Thread,
         1
     );
+
+    
 
     Clear_Buffer.SetPointer((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0));
 }
@@ -182,7 +189,7 @@ void SPI_master::TransmitThread(void* pvParameters)
 
 void SPI_master::TrasmitThread_routine()
 {
-    while(true)
+    while(!stop_thread)
     {
         while(!TX_queue.empty() || Slave_Sending)
         {
@@ -194,12 +201,12 @@ void SPI_master::TrasmitThread_routine()
             if(RX_queue.size() >= MASTER_RX_QUEUE_SIZE)
             {
                 RX_queue.pop();
-                ESP_LOGI(SPI_Tag,"Dropping last RX_Buf from the queue");
+                ESP_LOGW(SPI_Tag,"Dropping last RX_Buf from the queue");
             }
 
             spi_transaction_t t = {};
             t.user = this;
-            t.length = BUFFSIZE;
+            t.length = BUFFSIZE * 8;
             t.rx_buffer = RX_queue.back();
             
             RX_queue.push();
@@ -214,7 +221,9 @@ void SPI_master::TrasmitThread_routine()
             }
 
             xSemaphoreTake(rdysem, portMAX_DELAY); //Wait for Slave to be ready
-            spi_device_transmit(SPI_Handle, &t);
+            spi_device_queue_trans(SPI_Handle, &t, portMAX_DELAY);
+            spi_transaction_t *ret;
+            spi_device_get_trans_result(SPI_Handle, &ret, portMAX_DELAY);
 
             Slave_Sending = false;
             TX_queue.pop();
@@ -231,18 +240,21 @@ SPI_master::~SPI_master()
     {
         ESP_LOGE(SPI_Tag , "Unable to Free Master SPI device");
     }
+    spi_bus_free(Spi_Id);
+    stop_thread = true;
+    vTaskDelay(10 / portTICK_PERIOD_MS);
     vTaskDelete(Thread);
 }
 
 void SPI_master::VSPI_GPIO_CALLBACK(void* arg)
 {
-    static uint32_t lasthandshaketime_us;
+    static uint32_t lasthandshaketimeVSPI_us;
     uint32_t currtime_us = esp_timer_get_time();
-    uint32_t diff = currtime_us - lasthandshaketime_us;
+    uint32_t diff = currtime_us - lasthandshaketimeVSPI_us;
     if (diff < 1000) {
         return; //ignore everything <1ms after an earlier irq
     }
-    lasthandshaketime_us = currtime_us;
+    lasthandshaketimeVSPI_us = currtime_us;
 
     auto inst = static_cast<SPI_master*>(arg);
     inst->GPIO_routine();
@@ -250,13 +262,13 @@ void SPI_master::VSPI_GPIO_CALLBACK(void* arg)
 
 void SPI_master::HSPI_GPIO_CALLBACK(void* arg)
 {
-    static uint32_t lasthandshaketime_us;
+    static uint32_t lasthandshaketimeHSPI_us;
     uint32_t currtime_us = esp_timer_get_time();
-    uint32_t diff = currtime_us - lasthandshaketime_us;
+    uint32_t diff = currtime_us - lasthandshaketimeHSPI_us;
     if (diff < 1000) {
         return; //ignore everything <1ms after an earlier irq
     }
-    lasthandshaketime_us = currtime_us;
+    lasthandshaketimeHSPI_us = currtime_us;
 
     auto inst = static_cast<SPI_master*>(arg);
     inst->GPIO_routine();

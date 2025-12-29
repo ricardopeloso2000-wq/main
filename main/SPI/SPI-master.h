@@ -35,6 +35,7 @@
 #define MASTER_RX_QUEUE_SIZE 6
 #define BUFFSIZE 4096
 
+
 class SPI_master
 {
     public:
@@ -73,6 +74,7 @@ class SPI_master
 
     SemaphoreHandle_t rdysem;
     
+    volatile bool stop_thread = false;
     volatile bool Transaction_ongoing = false;
     volatile bool Slave_Sending;
 
