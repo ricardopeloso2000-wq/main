@@ -3,7 +3,6 @@
 
 #define INCLUDE_vTaskDelete 1
 
-#include <queue>
 #include "driver/spi_slave.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
@@ -13,6 +12,7 @@
 #include "freertos/semphr.h"
 #include "freertos/queue.h"
 
+#include "Queues/DMAQueue.h"
 #include "SmartPointers/DMASmartPointer.h"
 
 #define VSPI_MOSI 23
@@ -78,8 +78,8 @@ class SPI_master
     volatile bool Transaction_ongoing = false;
     volatile bool Slave_Sending;
 
-    std::queue<DMASmartPointer<uint8_t>> TX_queue;
-    std::queue<DMASmartPointer<uint8_t>> RX_queue;
+    DMAQueue TX_queue;
+    DMAQueue RX_queue;
     DMASmartPointer<uint8_t> Clear_Buffer;
     spi_device_handle_t SPI_Handle;
 };

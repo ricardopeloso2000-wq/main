@@ -11,7 +11,7 @@ SPI_master& SPI_master::HSPI_Instance()
     return HSPI_inst;
 }
 
-SPI_master::SPI_master(spi_host_device_t Id)
+SPI_master::SPI_master(spi_host_device_t Id) : RX_queue(MASTER_RX_QUEUE_SIZE , Id , BUFFSIZE) , TX_queue(MASTER_TX_QUEUE_SIZE , Id , BUFFSIZE)
 {
     Spi_Id = Id;
     if(Id == VSPI_HOST)VSPI_INIT();
@@ -199,12 +199,12 @@ void SPI_master::TrasmitThread_routine()
                 ESP_LOGI(SPI_Tag,"Dropping last RX_Buf from the queue");
             }
 
-            RX_queue.push((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0));
-
             spi_transaction_t t = {};
             t.user = this;
             t.length = BUFFSIZE;
-            t.rx_buffer = RX_queue.back().GetPointer();
+            t.rx_buffer = RX_queue.back();
+            
+            RX_queue.push();
 
             if(Slave_Sending)
             {
@@ -212,7 +212,7 @@ void SPI_master::TrasmitThread_routine()
             }
             else
             {
-                t.tx_buffer = TX_queue.front().GetPointer();
+                t.tx_buffer = TX_queue.front();
             }
 
             xSemaphoreTake(rdysem, portMAX_DELAY); //Wait for Slave to be ready
@@ -305,7 +305,7 @@ bool SPI_master::GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr)
 
     if(Transaction_ongoing && RX_queue.size() == 1) return false;
 
-    smt_ptr = RX_queue.front();
+    memcpy(smt_ptr.GetPointer() , RX_queue.front() , BUFFSIZE);
     RX_queue.pop();
 
     return true;
@@ -316,10 +316,7 @@ bool SPI_master::PutMessageOnTXQueue(const DMASmartPointer<uint8_t>& smt_ptr , s
     if(smt_ptr.GetPointer() == nullptr) return false;
     if(TX_queue.size() >= MASTER_TX_QUEUE_SIZE) return false;
 
-    DMASmartPointer TX_buf((uint8_t*)spi_bus_dma_memory_alloc(Spi_Id , BUFFSIZE , 0));
-    memcpy(TX_buf.GetPointer() , smt_ptr.GetPointer() , size);
-
-    TX_queue.push(TX_buf);
+    TX_queue.push(smt_ptr.GetPointer() , size);
     
     return true;
 }
