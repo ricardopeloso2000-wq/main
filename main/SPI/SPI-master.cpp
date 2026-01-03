@@ -98,7 +98,6 @@ void SPI_master::VSPI_INIT()
     io_conf.pin_bit_mask = BIT64(VSPI_HANDSHAKE_MISO_LINE);
     
     gpio_config(&io_conf);
-    gpio_install_isr_service(0);
     gpio_set_intr_type(gpio_num_t(VSPI_HANDSHAKE_MISO_LINE), GPIO_INTR_POSEDGE);
     gpio_isr_handler_add(gpio_num_t(VSPI_HANDSHAKE_MISO_LINE), SPI_master::VSPI_GPIO_CALLBACK, this);
 
@@ -169,7 +168,6 @@ void SPI_master::HSPI_INIT()
     io_conf.pin_bit_mask = BIT64(HSPI_HANDSHAKE_MISO_LINE);
     
     gpio_config(&io_conf);
-    gpio_install_isr_service(0);
     gpio_set_intr_type(gpio_num_t(HSPI_HANDSHAKE_MISO_LINE), GPIO_INTR_POSEDGE);
     gpio_isr_handler_add(gpio_num_t(HSPI_HANDSHAKE_MISO_LINE), SPI_master::HSPI_GPIO_CALLBACK, this);
 
@@ -193,8 +191,6 @@ void SPI_master::TrasmitThread_routine()
     {
         while(!TX_queue.empty() || Slave_Sending)
         {
-            Transaction_ongoing = true;
-
             if(Spi_Id == VSPI_HOST) gpio_set_level((gpio_num_t)VSPI_HANDSHAKE_MOSI_LINE , 1);  
             if(Spi_Id == HSPI_HOST) gpio_set_level((gpio_num_t)HSPI_HANDSHAKE_MOSI_LINE , 1);
 
@@ -207,8 +203,8 @@ void SPI_master::TrasmitThread_routine()
             spi_transaction_t t = {};
             t.user = this;
             t.length = BUFFSIZE * 8;
+
             t.rx_buffer = RX_queue.back();
-            
             RX_queue.push();
 
             if(Slave_Sending)
@@ -221,14 +217,14 @@ void SPI_master::TrasmitThread_routine()
             }
 
             xSemaphoreTake(rdysem, portMAX_DELAY); //Wait for Slave to be ready
-            spi_device_queue_trans(SPI_Handle, &t, portMAX_DELAY);
-            spi_transaction_t *ret;
-            spi_device_get_trans_result(SPI_Handle, &ret, portMAX_DELAY);
+            transaction_ongoing = true;
+            spi_device_transmit(SPI_Handle , &t);
+            transaction_ongoing = false;
 
             Slave_Sending = false;
             TX_queue.pop();
         }
-        Transaction_ongoing = false;
+        
         
         vTaskDelay(pdMS_TO_TICKS(1));
     }
@@ -301,7 +297,7 @@ void SPI_master::SPI_UnLockBus()
 bool SPI_master::GetLastRecivedMessage(DMASmartPointer<uint8_t>& smt_ptr)
 {
     if(RX_queue.empty()) return false;
-    if(Transaction_ongoing && RX_queue.size() == 1) return false;
+    if(transaction_ongoing && RX_queue.size() == 1) return false;
 
     memcpy(smt_ptr.GetPointer() , RX_queue.front() , BUFFSIZE);
     RX_queue.pop();

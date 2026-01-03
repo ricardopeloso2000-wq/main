@@ -86,12 +86,6 @@ SPI_Slave::~SPI_Slave()
     spi_slave_free(Slave_Id);
 }
 
-void SPI_Slave::Pos_Callback(spi_slave_transaction_t* trans)
-{
-    auto Inst = static_cast<SPI_Slave*>(trans->user);
-    Inst->Pos_routine();
-}
-
 void SPI_Slave::VSPI_GPIO_Callback(void* inst)
 {
     static uint32_t lasthandshaketime_us;
@@ -120,40 +114,56 @@ void SPI_Slave::HSPI_GPIO_Callback(void* inst)
     i->GPIO_routine();
 }
 
-void SPI_Slave::Pos_routine()
+void SPI_Slave::GPIO_routine()
 {
-    SPI_transaction_ongoing = false;
-}
+    if(TX_queue.empty()) Master_Sending= true;
 
-bool SPI_Slave::PutMessageOnTXQueue(uint8_t* TX_buf)
-{
-    if(TX_buf == nullptr) return false;
-    if(RX_queue.size() >= SLAVE_RX_QUEUE_SIZE)
-    {
-        ESP_LOGI(SPI_Tag , "Queue Full droping last RX_buf");
-        RX_queue.pop();
+    BaseType_t mustYield = false;
+    xSemaphoreGiveFromISR(rdysem, &mustYield);
+    if (mustYield) {
+        portYIELD_FROM_ISR();
     }
 
-    RX_queue.push(DMASmartPointer<uint8_t>((uint8_t*)spi_bus_dma_memory_alloc(Slave_Id , BUFFSIZE , 0)));
+}
 
-    spi_slave_transaction_t trans;
-    trans.length = BUFFSIZE * 8;
-    trans.rx_buffer = RX_queue.back().GetPointer();
-    trans.tx_buffer = TX_buf;
-    trans.user = this;
+void SPI_Slave::TransmitThread(void* pvParameters)
+{
+    auto inst =  static_cast<SPI_Slave*>(pvParameters);
+    inst->TransmitThread_routine();
+}
 
-    spi_slave_queue_trans(Slave_Id , &trans , portMAX_DELAY);
+void SPI_Slave::TransmitThread_routine()
+{
+    while(1)
+    {
+        while(!TX_queue.empty() || Master_Sending)
+        {
 
+
+
+        }
+
+    }
+}
+
+bool SPI_Slave::PutMessageOnTXQueue(const DMASmartPointer<uint8_t>& TX_ptr , size_t size)
+{
+    if(TX_ptr.GetPointer() == nullptr) return false;
+    if(TX_queue.size() >= SLAVE_TX_QUEUE_SIZE) return false;
+
+    TX_queue.push(TX_ptr.GetPointer() , size);
     return true;
 }   
 
 bool SPI_Slave::GetMessageOnRXQueue(DMASmartPointer<uint8_t>& smt_ptr)
 {
     if(RX_queue.empty()) return false;
-    if(RX_queue.size() == 1 && SPI_transaction_ongoing) return false;
+    if(RX_queue.size() == 1 && transaction_ongoing) return false;
 
-    smt_ptr = RX_queue.front();
+    
+    memcpy(smt_ptr.GetPointer() , RX_queue.front() , BUFFSIZE);
     RX_queue.pop();
+
     return true;
 }
 

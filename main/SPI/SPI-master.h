@@ -39,7 +39,7 @@
 class SPI_master
 {
     public:
-
+    //public members
     static SPI_master& VSPI_Instance();
     static SPI_master& HSPI_Instance();
 
@@ -57,7 +57,7 @@ class SPI_master
     static void TransmitThread(void* pvParameters);
     
     private:
-
+    //private members
     SPI_master(spi_host_device_t Id);
     ~SPI_master();
 
@@ -75,8 +75,8 @@ class SPI_master
     SemaphoreHandle_t rdysem;
     
     volatile bool stop_thread = false;
-    volatile bool Transaction_ongoing = false;
-    volatile bool Slave_Sending;
+    volatile bool Slave_Sending = false;
+    volatile bool transaction_ongoing = false;
 
     DMAQueue TX_queue;
     DMAQueue RX_queue;

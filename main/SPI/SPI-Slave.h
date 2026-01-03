@@ -1,8 +1,9 @@
 #ifndef SPI_SLAVE_H
 #define SPI_SLAVE_H
 
-#include <queue>
+#include "../Queues/DMAQueue.h"
 #include "../SmartPointers/DMASmartPointer.h"
+
 #include "driver/spi_slave.h"
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -41,12 +42,11 @@ class SPI_Slave
     SPI_Slave(SPI_Slave&) = delete;
     SPI_Slave operator=(SPI_Slave&) = delete;
 
-    bool PutMessageOnTXQueue(uint8_t* TX_buf);
+    bool PutMessageOnTXQueue(const DMASmartPointer<uint8_t>& TX_ptr , size_t size);
     bool GetMessageOnRXQueue(DMASmartPointer<uint8_t>& smt_ptr);
 
     static void IRAM_ATTR VSPI_GPIO_Callback(void* inst);
     static void IRAM_ATTR HSPI_GPIO_Callback(void* inst);
-    static void IRAM_ATTR Pos_Callback(spi_slave_transaction_t* trans);
 
     static void IRAM_ATTR TransmitThread(void* pvParameters);
 
@@ -57,18 +57,20 @@ class SPI_Slave
     void VSPI_INIT();
     void HSPI_INIT();
 
-    void Pos_routine();
     void GPIO_routine();
     void TransmitThread_routine();
 
     spi_host_device_t Slave_Id;
     const char* SPI_Tag = "SPI_slave";
 
-    volatile bool SPI_transaction_ongoing = false;
-    volatile bool Master_Sending = false;
+    SemaphoreHandle_t rdysem;
 
-    std::queue<DMASmartPointer<uint8_t>> TX_queue;
-    std::queue<DMASmartPointer<uint8_t>> RX_queue;
+    volatile bool stop_thread = false;
+    volatile bool Master_Sending = false;
+    volatile bool transaction_ongoing = false;
+
+    DMAQueue TX_queue;
+    DMAQueue RX_queue;
 };
 
 #endif
